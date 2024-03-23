@@ -6,7 +6,7 @@ A recreation of Tetris that runs in a Terminal/Command Prompt!
 First Upload of Term Tetris. Currently working on the foundation of the game, grid and movement.
 
 
-![Alt Text](https://github.com/KChun510/Terminal_Tetris/blob/main/term_tetris.gif)
+![Alt Text](https://github.com/KChun510/TermTris_Tetris-In-the-CLI/blob/extra_content/term_tetris.gif)
 
 
 
@@ -14,5 +14,5 @@ First Upload of Term Tetris. Currently working on the foundation of the game, gr
 **Date: 3/22/24** <br />
 Now working on adding each tetris peice. First up the I pillar. Shape and rotation.
 
-![Alt Text](https://github.com/KChun510/TermTris_Tetris-In-the-CLI/blob/main/termtris_vid_v.1.2.gif)
+![Alt Text](https://github.com/KChun510/TermTris_Tetris-In-the-CLI/blob/extra_content/termtris_vid_v.1.2.gif)
 
