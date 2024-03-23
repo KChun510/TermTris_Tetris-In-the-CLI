@@ -11,3 +11,8 @@ First Upload of Term Tetris. Currently working on the foundation of the game, gr
 
 
 
+**Date: 3/22/24**
+Now working on adding each tetris peice. First up the I pillar. Shape and rotation.
+
+![Alt Text](https://github.com/KChun510/TermTris_Tetris-In-the-CLI/blob/main/termtris_vid_v.1.2.gif)
+
