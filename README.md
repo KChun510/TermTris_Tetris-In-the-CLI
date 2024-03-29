@@ -16,3 +16,9 @@ Now working on adding each tetris peice. First up the I pillar. Shape and rotati
 
 ![Alt Text](https://github.com/KChun510/TermTris_Tetris-In-the-CLI/blob/extra_content/termtris_vid_v.1.2.gif)
 
+
+
+**Date: 3/28/24** <br />
+Finished the foundational rotation logic for blocks.
+
+![Alt Text](https://github.com/KChun510/TermTris_Tetris-In-the-CLI/blob/extra_content/term_tetris_gif_3_28_24.gif)
