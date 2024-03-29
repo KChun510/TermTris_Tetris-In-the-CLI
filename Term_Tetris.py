@@ -70,6 +70,38 @@ class peice(grid):
 		self.peice_pos = self.center
 		self.grid[self.peice_pos[0]][self.peice_pos[1]] = f"|{self.fill}| "
 
+	
+	
+
+	def check_block_top(self) -> bool:
+		if (self.grid[self.peice_pos[0] - 3][self.peice_pos[1]] == self.grid[self.peice_pos[0]][self.peice_pos[1]]):
+			return True
+		else:
+			return False
+
+
+	def check_block_left(self) -> bool:
+		if (self.grid[self.peice_pos[0]][self.peice_pos[1] - 1] == self.grid[self.peice_pos[0]][self.peice_pos[1]]):
+			return True
+		else:
+			return False	
+
+	def check_block_right(self) -> bool:
+		if (self.grid[self.peice_pos[0]][self.peice_pos[1] + 1] == self.grid[self.peice_pos[0]][self.peice_pos[1]]):
+			return True
+		else:
+			return False
+
+
+	def check_block_under(self) -> bool:
+		if (self.grid[self.peice_pos[0] + 3][self.peice_pos[1]] == self.grid[self.peice_pos[0]][self.peice_pos[1]]):
+			return True
+		else:
+			return False
+
+
+
+
 	def place_peice(self):
 		self.grid[self.peice_pos[0]][self.peice_pos[1]] = f"|{self.fill}| "
 
@@ -114,14 +146,21 @@ class peice_I_block(peice):
 	def __init__(self):
 		peice.__init__(self)
 		self.length = 4
-		self.peice_pos = self.center
-		self.peice_pos[0] = 1
+		#self.peice_pos = self.center
+		self.peice_pos = [31, 5]
+
+		#print(self.center)
+		#time.sleep(5)
+		#self.peice_pos[0] = 1
 		
 		self.last_move = [] # We will keep a tempory trace of the index's are filled. Needed for peice deletion
-		
+		#print(self.peice_pos)
+		time.sleep(2)
 		# self.peice_pos[0] += 3
 		tmp = self.peice_pos[0]
 		
+
+
 		for cell in range(self.length):
 			self.grid[tmp][self.peice_pos[1]] = f"|{self.fill}| "
 
@@ -130,8 +169,9 @@ class peice_I_block(peice):
 			tmp += 3
 
 	def remove_peice(self):
-		print(self.last_move)
+		
 		for cords in self.last_move:
+			
 			self.grid[cords[0]][cords[1]]  = f"|{self.empty}| "
 
 		self.last_move = []
@@ -142,31 +182,59 @@ class peice_I_block(peice):
 	
 	def rotate_block_left(self):
 		# This is in form of y, x
-		self.remove_peice()
 		
-		tmp = self.peice_pos
-		# IF there is a block underneath our start block
-		#print(self.grid[self.peice_pos[0] + 3][self.peice_pos[1]] == self.grid[self.peice_pos[0]][self.peice_pos[1]])
-		#print(self.grid[self.peice_pos[0]][self.peice_pos[1]- 1] == self.grid[self.peice_pos[0]][self.peice_pos[1]])
+		tmp = self.peice_pos.copy()
 		
 		# IF there is a block underneath our start block and there is enough space on the left side
-		if(self.grid[self.peice_pos[0] + 3][self.peice_pos[1]] == self.grid[self.peice_pos[0]][self.peice_pos[1]] and self.peice_pos[1] >= 3):
+		if(self.check_block_under() and self.peice_pos[1] >= 3):
+			self.remove_peice()
 			for cell in range(self.length):
-				self.grid[self.peice_pos[0]][tmp[1]] = f"|{self.fill}| "
+				self.grid[tmp[0]][tmp[1]] = f"|{self.fill}| "
 				
-				self.last_move += [[self.peice_pos[0],tmp[1]]]
+				self.last_move += [[tmp[0],tmp[1]]]
 				
 				tmp[1] -= 1
 		
 		# IF there is a block to the left our start block and enough space up top
-		elif(self.grid[self.peice_pos[0]][self.peice_pos[1] - 1] == self.grid[self.peice_pos[0]][self.peice_pos[1]] and self.peice_pos[1] >= 12):
+		elif(self.check_block_left() and self.peice_pos[0] >= 12):
+			
+			self.remove_peice()
+
 			for cell in range(self.length):
-				self.grid[self.peice_pos[0]][tmp[0]] = f"|{self.fill}| "
+			
+				self.grid[tmp[0]][tmp[1]] = f"|{self.fill}| "
 				
-				self.last_move += [[self.peice_pos[0], tmp[0]]]
-
-
+				self.last_move += [[tmp[0],tmp[1]]]
 				tmp[0] -= 3
+
+		# if there is a block up top, and enough space to the right
+		elif(self.check_block_top() and self.peice_pos[1] <= 7):
+			
+			self.remove_peice()
+
+			for cell in range(self.length):
+
+				self.grid[tmp[0]][tmp[1]] = f"|{self.fill}| "
+
+				self.last_move += [[tmp[0],tmp[1]]]
+
+				tmp[1] += 1
+
+		# if there is a block to the right and enough space bellow
+		elif(self.check_block_right() and self.peice_pos[0] <= 48):
+
+			self.remove_peice()
+			
+			for cell in range(self.length):
+			
+				self.grid[tmp[0]][tmp[1]] = f"|{self.fill}| "
+				
+				self.last_move += [[tmp[0],tmp[1]]]
+				tmp[0] += 3
+
+		else:
+			print("Invalid Move")
+
 
 		# IF there is a block ontop of the start and enough space to the right
 
@@ -175,16 +243,58 @@ class peice_I_block(peice):
 
 
 	def rotate_block_right(self):
-		tmp = self.peice_pos[1]
-		for cell in range(self.length):
-			self.grid[self.peice_pos[0]][tmp] = f"|{self.fill}| "
-			tmp += 1
+		tmp = self.peice_pos.copy()
+		
+		# if there is a block bellow our start block, and enough space to the right
+		if(self.check_block_under() and self.peice_pos[1] <= 7):
+			self.remove_peice()
+			for cell in range(self.length):
+				self.grid[tmp[0]][tmp[1]] = f"|{self.fill}| "
 
+				self.last_move += [[tmp[0],tmp[1]]]
 
+				tmp[1] += 1
+		
+		# if there is a block to the right, and enough space up top
+		elif(self.check_block_right() and self.peice_pos[0] >= 12):
+			self.remove_peice()
+			print(f"This is the value of pos: {self.peice_pos} value of: {tmp}")
+			for cell in range(self.length):
+				
+			
+				self.grid[tmp[0]][tmp[1]] = f"|{self.fill}| "
+				
+				self.last_move += [[tmp[0],tmp[1]]]
+				tmp[0] -= 3		
 
+		# if there is a block up top, and enough space to the left
+		elif(self.check_block_top() and self.peice_pos[1] >= 3):
+			
+			self.remove_peice()
 
+			for cell in range(self.length):
 
+				self.grid[tmp[0]][tmp[1]] = f"|{self.fill}| "
 
+				self.last_move += [[tmp[0],tmp[1]]]
+
+				tmp[1] -= 1
+
+			
+
+		# if there is a block to the left, and enough space on the bottom
+		elif(self.check_block_left() and self.peice_pos[0] <= 48):
+
+			self.remove_peice()
+			
+			for cell in range(self.length):
+			
+				self.grid[tmp[0]][tmp[1]] = f"|{self.fill}| "
+				
+				self.last_move += [[tmp[0],tmp[1]]]
+				tmp[0] += 3
+		else: 
+			print("Invalid Move")
 
 
 
@@ -215,6 +325,13 @@ class peice_I_block(peice):
 
 	
 
+
+
+class test_peice(peice):
+	def __init__(self):
+		peice.__init__(self)
+	
+		self.grid[31][5] = f"|{self.fill}| "
 
 
 
@@ -272,26 +389,55 @@ def on_press(key):
 
 
 def main() -> None:	
-	player1 = grid()
-	player1.show_grid()
-	peice1 = peice()
-	#print(peice1.length)
+	spawn_grid = grid()
+	spawn_grid.show_grid()
+	#test = test_peice()
+	
+
 	i_block = peice_I_block()
 	i_block.show_grid()
-	#i_block.place_center()
-	#i_block.show_grid()
-	#time.sleep(2)
-	#i_block.rotate_block_left()
-	#i_block.place_center()
-	#i_block.show_grid()
-	#i_block.place_center()
-	#i_block.rotate_block_right()
-	time.sleep(2)
+	time.sleep(1)
+
+	"""
 	i_block.rotate_block_left()
 	i_block.show_grid()
-	#i_block.rotate_block_left()
-	#i_block.show_grid()
-	#i_block.place_center()
+	time.sleep(1)
+
+
+	i_block.rotate_block_left()
+	i_block.show_grid()
+	time.sleep(1)
+	"""
+	
+	"""
+	i_block = peice_I_block()
+	i_block.show_grid()
+	time.sleep(2)
+	i_block.rotate_block_right()
+	i_block.show_grid()
+	time.sleep(2)
+	i_block.rotate_block_right()
+	i_block.show_grid()
+	"""
+
+	#print(peice1.length)
+
+	for i in range(4):
+		i_block.rotate_block_left()
+		i_block.show_grid()
+		time.sleep(1)
+
+	time.sleep(1)
+	for i in range(4):
+		i_block.rotate_block_right()
+		i_block.show_grid()
+		time.sleep(1)
+
+
+
+
+	
+	
 
 	"""
 	with Listener(on_press=on_press) as listener:
