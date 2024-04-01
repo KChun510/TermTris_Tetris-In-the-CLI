@@ -7,7 +7,7 @@ Completed:
 - Sync piece position and time across threads.
 - Working block collision detection.
 
-![Alt Text](https://github.com/KChun510/TermTris_Tetris-In-the-CLI/blob/extra_content/term_tetris_gif_3_28_24.gif)
+![Alt Text](https://github.com/KChun510/TermTris_Tetris-In-the-CLI/blob/extra_content/Term_Tetris_Video-ezgif.com-video-to-gif-converter.gif)
 
 
 
