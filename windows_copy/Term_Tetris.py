@@ -1,4 +1,5 @@
-from pynput.keyboard import Key, Listener
+#from pynput.keyboard import Key, Listener (MAC)
+import msvcrt # Windows
 import os
 import time
 import threading
@@ -34,13 +35,18 @@ grid = []
 last_move = []  # We will keep a tempory trace of the index's are filled. Needed for peice deletion
 taken_cell = []
 peice_alive = 1
+count = 0
+user_input = ""
+game_alive = True
+
+max_game_count = 250
 
 
 
 class grid_field:
 	def __init__(self):
 		global grid
-		self.length = 20
+		self.length = 22
 		self.width = 10
 		self.center = [(self.length // 2), (self.width // 2)]
 		self.empty = '   '
@@ -60,8 +66,9 @@ class grid_field:
 
 	def show_grid(self):
 		os.system('cls||clear')
-		for row in grid:
+		for row in grid[6:]:
 			print(''.join(row))
+
 
 	
 class peice():
@@ -81,7 +88,7 @@ class peice():
 
 	def show_grid(self):
 		os.system('cls||clear')
-		for row in grid:
+		for row in grid[6:]:
 			print(''.join(row))
 
 
@@ -94,6 +101,40 @@ class peice():
 		peice_pos = self.center
 		grid[peice_pos[0]][peice_pos[1]] = f"|{self.fill}| "
 	
+
+	def check_grid(self):
+		global grid
+		global taken_cell
+		global peice_alive
+		row = 1
+		while row <= 64:
+			#print(grid[row])
+			col = 0
+			while col < 10:
+				if col == 9 and not peice_alive:
+					tmp = []
+					grid[row] = [f"|{self.empty}| "] * 10
+				
+					for cord in taken_cell:
+						if cord[0] == row:
+							pass
+						else:
+							tmp += [cord]
+					
+					taken_cell = tmp
+					peice_alive = 0
+					#self.show_grid()d
+					break
+				elif grid[row][col] == f"|{self.empty}| ":
+					break
+				else:
+					col += 1
+
+			row += 3
+
+
+
+
 
 	def check_block_top(self) -> bool:
 		global peice_pos
@@ -159,7 +200,7 @@ class peice():
 		global last_move
 		tmp = last_move.copy()
 		for cord in tmp:
-			if cord in taken_cell:
+			if [cord[0] + 3, cord[1]] in taken_cell:
 				return True
 		return False
 
@@ -167,10 +208,10 @@ class peice():
 
 	def fill_cell(self, y: int, x:int) -> None:
 		global grid
-		if y <= 58: 
+		if y <= 64: 
 			grid[y][x] = f"|{self.fill}| "
 		else:
-			grid[58][x] = f"|{self.fill}| "
+			grid[64][x] = f"|{self.fill}| "
 		return None
 
 
@@ -232,26 +273,38 @@ class peice():
 		global peice_pos
 		global taken_cell
 		global peice_alive
+		global game_alive
 		collision_flag_block = 0
 		collision_flag_floor = 0
 
 
 		tmp = last_move.copy()
+		# Check if we are out of our top bound
+		for cord in last_move:
+			if (cord[0] < 6 and self.is_cell_taken()):
+				
+				game_alive = False
+				return False
 
 		if (self.is_cell_taken()):
-
+			print("Collision detected")
+			lock.acquire()
 			collision_flag_block = 1
+			lock.release()
 
 		if len(last_move) > 0:
 			for cord in tmp: 
-				if (cord[0] >= 58):
+				if (cord[0] >= 64):
 					collision_flag_floor = 1
 					break
+		
+		if peice_alive == 0:
+			return False
 			
 		if collision_flag_floor == 1 and collision_flag_block == 1:
 			for cord in tmp:
-				self.fill_cell(cord[0] - 3 , cord[1])
-				taken_cell += [[cord[0] - 3, cord[1]]]
+				self.fill_cell(cord[0] , cord[1])
+				taken_cell += [[cord[0], cord[1]]]
 		
 			self.show_grid()
 		
@@ -266,7 +319,7 @@ class peice():
 		
 
 		elif collision_flag_floor == 1:
-			self.remove_peice()
+			#self.remove_peice()
 			for cord in tmp:
 				self.fill_cell(cord[0], cord[1])
 				taken_cell += [[cord[0], cord[1]]]
@@ -284,8 +337,8 @@ class peice():
 
 		elif collision_flag_block == 1:
 			for cord in tmp:
-				self.fill_cell(cord[0] - 3 , cord[1])
-				taken_cell += [[cord[0] - 3, cord[1]]]
+				self.fill_cell(cord[0] , cord[1])
+				taken_cell += [[cord[0], cord[1]]]
 		
 			self.show_grid()
 		
@@ -313,40 +366,99 @@ class peice():
 
 
 		lock.acquire()
-		peice_pos = peice_pos
 		tmp = last_move.copy()
 		lock.release()
 
 
-		# This is how we sink the data between threads.
-		# Make up for the incrimented value in our counter func
-		# Only move down if value was updated
-
-		if len(last_move) > 0 and last_move[0][0] < 58:
+		# Extra condition, to ensure not moving out of grid
+		if len(last_move) > 0 and last_move[0][0] < 66:
+			# This is how we sink the data between threads.
+			# Make up for the incrimented value in our counter func
+			# Only move down if value was updated
 			delta =  peice_pos[0] - last_move[0][0]
 		else:
 			delta = 0
  	
-		print("Move down")
+		
 		if self.check_pos():
 			self.remove_peice() 
 			for cord in tmp:
 				self.fill_cell(cord[0] + delta , cord[1])
 				last_move += [[cord[0] + delta , cord[1]]]
-
-				"""
-				if cord[0] >= 58: # In case we reached our maxed bounds
-					self.fill_cell(cord[0] , cord[1])
-					last_move += [[cord[0] , cord[1]]]
-				else:
-					self.fill_cell(cord[0] + delta , cord[1])
-					last_move += [[cord[0] + delta , cord[1]]]
-				"""
 		else:
 			lock.acquire()
 			peice_alive =  0
 			lock.release()
 			self.show_grid()
+
+	
+	def move_left(self) -> None:
+		global peice_pos
+		global last_move
+		global next_cells
+
+		
+		tmp = last_move.copy()
+		peice_pos = [peice_pos[0], peice_pos[1] - 1]
+		
+		for cord in tmp:
+			if cord[1] == 0:
+				return None
+			elif [cord[0] ,cord[1] - 1] in taken_cell:
+				return None
+
+		if self.check_pos():
+			self.remove_peice() 
+			for cord in tmp:
+				self.fill_cell(cord[0], cord[1] - 1)
+				last_move += [[cord[0], cord[1] - 1]]
+
+		else:
+			lock.acquire()
+			peice_alive =  0
+			lock.release()
+			self.show_grid()
+
+	
+	def move_right(self) -> None:
+		global peice_pos
+		global last_move
+		global next_cells
+		global taken_cell
+
+		
+		tmp = last_move.copy()
+		peice_pos = [peice_pos[0], peice_pos[1] + 1]
+		
+		for cord in tmp:
+			if cord[1] == 9:
+				return None
+			elif [cord[0] ,cord[1] + 1] in taken_cell:
+				return None
+
+		if self.check_pos():
+			self.remove_peice() 
+			for cord in tmp:
+				self.fill_cell(cord[0], cord[1] + 1)
+				last_move += [[cord[0], cord[1] + 1]]
+
+		else:
+			lock.acquire()
+			peice_alive =  0
+			lock.release()
+			self.show_grid()
+
+	def force_down(self) -> None:
+		global peice_pos
+		if peice_pos[0] + 3 < 61 and self.check_pos():
+			peice_pos[0] += 3
+			self.move_down()
+		else:
+			return None
+
+
+
+
 
 
 
@@ -357,7 +469,6 @@ class peice():
 	
 		tmp = last_move.copy()
 		self.remove_peice()
-		print(f"The actual position {peice_pos}")
 		peice_pos[0] += 3
 
 		for cords in tmp: 
@@ -399,10 +510,8 @@ class peice_I_block(peice):
 		peice_pos = peice_pos
 		self.tmp = peice_pos.copy()
 		lock.release()
-		print(self.tmp)
+	
 
-
-		
 		for cell in range(self.length):
 			grid[self.tmp[0]][self.tmp[1]] = f"|{self.fill}| "
 		
@@ -411,7 +520,7 @@ class peice_I_block(peice):
 		
 			self.tmp[0] += 3
 
-		time.sleep(.2) 
+		self.show_grid()
 		
 
 	
@@ -425,9 +534,10 @@ class peice_I_block(peice):
 		print("Turn Left")
 		self.tmp = peice_pos.copy()
 		next_cells = []
+
 		# IF there is a block underneath our start block and there is enough space on the left side
 		if(self.check_pos()):
-			if(peice_pos[1] >= 3 and peice_pos[0] <= 48 and self.check_block_under()):
+			if(peice_pos[1] >= 3 and peice_pos[0] <= 54 and self.check_block_under()):
 			
 				self.remove_peice()
 
@@ -473,7 +583,7 @@ class peice_I_block(peice):
 		
 
 			# if there is a block to the right and enough space bellow
-			elif(peice_pos[0] <= 48 and self.check_block_right()):
+			elif(peice_pos[0] <= 54 and self.check_block_right()):
 
 				self.remove_peice()
 				
@@ -504,80 +614,76 @@ class peice_I_block(peice):
 		global peice_pos
 		global last_move
 		global next_cells
-		lock.acquire()
+		# This is in form of y, x
+
+
+		print("Turn Left")
 		self.tmp = peice_pos.copy()
 		next_cells = []
-		lock.release()
-
-		self.remove_peice()
-		time.sleep(.1)
-		# if there is a block bellow our start block, and enough space to the right
-		if(self.check_block_under() and peice_pos[1] <= 7):
-			self.remove_peice()
-			for cell in range(self.length):
-				grid[self.tmp[0]][self.tmp[1]] = f"|{self.fill}| "
-
-
-				last_move += [[self.tmp[0],self.tmp[1]]]
-
-				self.tmp[1] += 1
-
-			lock.acquire()
-			self.tmp = peice_pos.copy()
-			lock.release()
 		
-		# if there is a block to the right, and enough space up top
-		elif(self.check_block_right() and peice_pos[0] >= 10):
-			self.remove_peice()
-			print(f"This is the value of pos: {peice_pos} value of: {self.tmp}")
-			for cell in range(self.length):
+		# if there is a block bellow our start block, and enough space to the right
+		if(self.check_pos()):
+			if(peice_pos[1] <= 7  and peice_pos[0] <= 54 and self.check_block_under() ):
 				
-			
-				grid[self.tmp[0]][self.tmp[1]] = f"|{self.fill}| "
+				self.remove_peice()
 				
-				last_move += [[self.tmp[0],self.tmp[1]]]
-				self.tmp[0] -= 3
+				for cell in range(self.length):
+					grid[self.tmp[0]][self.tmp[1]] = f"|{self.fill}| "
+					last_move += [[self.tmp[0],self.tmp[1]]]
+
+					self.tmp[1] += 1
+
+				self.tmp = peice_pos.copy()
+	
 			
-			lock.acquire()
-			self.tmp = peice_pos.copy()
-			lock.release()		
-
-		# if there is a block up top, and enough space to the left
-		elif(self.check_block_top() and peice_pos[1] >= 3):
-			
-			self.remove_peice()
-
-			for cell in range(self.length):
-
-				grid[self.tmp[0]][self.tmp[1]] = f"|{self.fill}| "
-
-				last_move += [[self.tmp[0],self.tmp[1]]]
-
-				self.tmp[1] -= 1
-			
-			lock.acquire()
-			self.tmp = peice_pos.copy()
-			lock.release()
-
-			
-
-		# if there is a block to the left, and enough space on the bottom
-		elif(self.check_block_left() and peice_pos[0] <= 48):
-
-			self.remove_peice()
-			
-			for cell in range(self.length):
-			
-				grid[self.tmp[0]][self.tmp[1]] = f"|{self.fill}| "
+			# if there is a block to the right, and enough space up top
+			elif(self.check_block_right() and peice_pos[0] >= 10):
+				self.remove_peice()
 				
-				last_move += [[self.tmp[0],self.tmp[1]]]
-				self.tmp[0] += 3
-			
-			lock.acquire()
-			self.tmp = peice_pos.copy()
-			lock.release()
-		else: 
-			print("Invalid Move")
+				for cell in range(self.length):
+					grid[self.tmp[0]][self.tmp[1]] = f"|{self.fill}| "
+					last_move += [[self.tmp[0],self.tmp[1]]]
+					self.tmp[0] -= 3
+				
+				self.tmp = peice_pos.copy()
+
+
+			# if there is a block up top, and enough space to the left
+			elif(self.check_block_top() and peice_pos[1] >= 3):
+				
+				self.remove_peice()
+
+				for cell in range(self.length):
+
+					grid[self.tmp[0]][self.tmp[1]] = f"|{self.fill}| "
+
+					last_move += [[self.tmp[0],self.tmp[1]]]
+
+					self.tmp[1] -= 1
+				
+				
+				self.tmp = peice_pos.copy()
+				
+
+				
+
+			# if there is a block to the left, and enough space on the bottom
+			elif(self.check_block_left() and peice_pos[0] <= 54):
+
+				self.remove_peice()
+				
+				for cell in range(self.length):
+				
+					grid[self.tmp[0]][self.tmp[1]] = f"|{self.fill}| "
+					
+					last_move += [[self.tmp[0],self.tmp[1]]]
+					self.tmp[0] += 3
+				
+				self.tmp = peice_pos.copy()
+
+			else: 
+				print("Invalid Move")
+				self.move_down()
 		
 
 
@@ -635,10 +741,11 @@ def on_press(key):
     			player1.show_grid()
     		case "q":
     			return None
+
 """
 
 # Collect events until released
-
+"""
 def game_play_manual():
 	global peice_pos
 	spawn_grid = grid_field()
@@ -661,11 +768,68 @@ def game_play_manual():
 				i_block.rotate_block_right()
 				spawn_grid.show_grid()
 
+"""
 
-def game_play():
+def game_play_auto():
 	global peice_pos
 	global grid
 	global peice_alive
+	global count
+	global max_game_count
+	spawn_grid = grid_field()
+	spawn_grid.show_grid()
+	spawn_grid.show_grid()
+	peice_control = peice()	
+
+	
+
+	for i in range(20):
+		i_block = peice_I_block()  # When the bottom loop breaks, Our object is called once more
+	
+		peice_alive = 1
+		while peice_alive and count != max_game_count:
+			input_for_control = random.randint(0, 7)
+			time.sleep(.26)
+			match input_for_control:
+				case 0:
+					peice_control.check_pos()
+					peice_control.move_down()
+					spawn_grid.show_grid()
+				
+				case 1:
+					peice_control.check_pos()
+					i_block.rotate_block_left()
+					spawn_grid.show_grid()
+	
+				case 4:
+					peice_control.check_pos()
+					i_block.rotate_block_right()
+					spawn_grid.show_grid()
+				case 5:
+					peice_control.check_pos()
+					peice_control.force_down()
+					spawn_grid.show_grid()
+				case 6:
+					peice_control.check_pos()
+					peice_control.move_left()
+					spawn_grid.show_grid()
+				case 7:
+					peice_control.check_pos()
+					peice_control.move_right()
+					spawn_grid.show_grid()
+
+
+
+
+
+def game_play_manual():
+	global peice_pos
+	global grid
+	global peice_alive
+	global count
+	global user_input
+	global game_alive
+	global max_game_count
 	spawn_grid = grid_field()
 	spawn_grid.show_grid()
 	spawn_grid.show_grid()
@@ -677,31 +841,36 @@ def game_play():
 		i_block = peice_I_block()  # When the bottom loop breaks, Our object is called once more
 		print( "A new object being created!!!")
 		peice_alive = 1
-		while peice_alive:
-			input_for_control = random.randint(0, 1)
-			time.sleep(.25)
-			match input_for_control:
-				case 0:
-					peice_control.check_pos()
+		while peice_alive and game_alive and count != max_game_count:
+			peice_control.check_grid()
+			match user_input:
+				case '':
+					user_input = ''
 					peice_control.move_down()
 					spawn_grid.show_grid()
-				case 1:
+					time.sleep(.15)
+				case 'a':
+					user_input = ''
+					peice_control.move_left()
+					spawn_grid.show_grid()
+					time.sleep(.15)
+				case 's':
+					user_input = ''
 					peice_control.check_pos()
+					if peice_pos[0] < 58:
+						peice_control.force_down()
+						spawn_grid.show_grid()
+					time.sleep(.15)
+				case 'd':
+					user_input = ''
+					peice_control.move_right()
+					spawn_grid.show_grid()
+					time.sleep(.15)
+				case 'q':
+					user_input = ''
 					i_block.rotate_block_left()
 					spawn_grid.show_grid()
-
-				case 2:
-					peice_control.move_down()
-					spawn_grid.show_grid()
-				case 4:
-					i_block.rotate_block_right()
-					spawn_grid.show_grid()
-
-
-	"""
-	with Listener(on_press=on_press) as listener:
-		listener.join()
-	"""
+					time.sleep(.15)
 
 """
 def counter_func():
@@ -724,7 +893,11 @@ Reason for current glitch. Before the block is placed. The last moved is made. T
 
 
 """
+"""
+cd onedrive/desktop/termtres/windows_copy
+python3 Term_Tetris.py
 
+"""
 
 
 """
@@ -736,48 +909,59 @@ def counter_func():
 	global next_cells
 	global grid
 	global last_move
+	global count
+	global game_alive
+	global max_game_count
 	#grid[5][1] = "dfdsafdsa" We can reach the global grid from this functions
-	for i in range(100):
-		print(peice_pos)
-		time.sleep(1)
-		lock.acquire()
-		peice_pos[0] += 3
-		lock.release()
+	for i in range(max_game_count):
+		if game_alive:
+			
+			time.sleep(.2)
+			lock.acquire()
+			peice_pos[0] += 3
+			count += 1
+			lock.release()
+		else:
+			break
+
+"""
+Notes: 4/9/2024
+We need to change the oder of operations for check pos. 
+Currently were movind down, then checking the pos.
 
 
-	
+But we first need to check the next pos, then move. This is what is creating our dupe block error on collision
+
+"""
 
 
-		
+
+def player_input():
+	global user_input
+	global count
+	global game_alive
+	global max_game_count
+
+	while count != max_game_count and game_alive:
+		user_input = chr(msvcrt.getch()[0])
+
+
+
 
 
 def main() -> None:
-	t1 = threading.Thread(target=game_play)
-	#t1 = threading.Thread(target=manual_game_play)
+	t1 = threading.Thread(target=game_play_manual)
+	#t1 = threading.Thread(target=game_play_auto)
 	t2 = threading.Thread(target=counter_func)
-
+	t3 = threading.Thread(target=player_input)
 
 	t1.start()
 	t2.start()
+	t3.start()
 
 	t1.join()
 	t2.join()
-	
-
-
-
+	t3.join()
 
 if __name__ == "__main__":
 	main()
-
-
-
-
-"""
-cd onedrive/desktop/termtres/windows_copy
-
-"""
-
-
-
-
