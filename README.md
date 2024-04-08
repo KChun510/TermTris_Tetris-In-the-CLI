@@ -3,8 +3,8 @@ A recreation of Tetris that runs in a Terminal/Command Prompt!
 
 **Date: 4/7/24** <br />
 Completed:
-- Moving brick left and right
-- End game conditions
+- Left and right brick movement.
+- End game conditions.
 
 ![Alt Text](https://github.com/KChun510/TermTris_Tetris-In-the-CLI/blob/extra_content/Recording2024-04-07194059-ezgif.com-video-to-gif-converter.gif)
 
