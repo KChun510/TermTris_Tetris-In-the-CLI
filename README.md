@@ -8,7 +8,7 @@ Completed:
 - End game conditions.
 
 
-![Alt Text](https://github.com/KChun510/TermTris_Tetris-In-the-CLI/blob/extra_content/giphy.mp4)
+![Alt Text](https://github.com/KChun510/TermTris_Tetris-In-the-CLI/tree/extra_content)
 
   
 
