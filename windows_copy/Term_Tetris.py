@@ -38,6 +38,8 @@ peice_alive = 1
 count = 0
 user_input = ""
 game_alive = True
+cell_taken_flag = False
+cleard_row = []
 
 max_game_count = 250
 
@@ -76,6 +78,8 @@ class peice():
 		global grid
 		global peice_pos
 		global last_move
+		global cardinal
+		cardinal = ''
 		#grid = grid_arr
 		#self.center = [(self.length // 2), (self.width // 2)]
 		self.empty = '   '
@@ -102,35 +106,48 @@ class peice():
 		grid[peice_pos[0]][peice_pos[1]] = f"|{self.fill}| "
 	
 
-	def check_grid(self):
+	def check_grid(self) -> bool:
 		global grid
 		global taken_cell
 		global peice_alive
-		row = 1
-		while row <= 64:
-			#print(grid[row])
-			col = 0
-			while col < 10:
-				if col == 9 and not peice_alive:
-					tmp = []
-					grid[row] = [f"|{self.empty}| "] * 10
-				
-					for cord in taken_cell:
-						if cord[0] == row:
-							pass
-						else:
-							tmp += [cord]
-					
-					taken_cell = tmp
-					peice_alive = 0
-					#self.show_grid()d
-					break
-				elif grid[row][col] == f"|{self.empty}| ":
-					break
-				else:
-					col += 1
+		global cleard_row
+		clear_flag = 0
+		clear_count = 0
+		row = 64
 
-			row += 3
+
+		# Evaluate, clear, drop row, re-evaluate
+		while row > 2:
+			if grid[row] == [ f"|{self.fill}| "] * 10:
+				clear_flag = 1
+				clear_count += 1
+				grid[row] = [f"|{self.empty}| "] * 10
+
+				cleard_row += [row]
+				tmp_array = []
+				for val in taken_cell:
+					if val[0] == row:
+						pass
+					else:
+						# This does 2 things. One, save the cells we want to drop down. 
+						# Two, update the taken cells to match the clear
+						tmp_array += [[val[0] + 3, val[1]]]
+
+				taken_cell = tmp_array
+				tmp = row
+				while tmp > 2:
+					grid[tmp] = grid[tmp - 3]
+					tmp -= 3
+
+				row = 64
+
+			else:
+				row -= 3
+
+		return True
+
+
+
 
 
 
@@ -160,6 +177,7 @@ class peice():
 		print(f"Make sure this is filled: {grid[peice_pos[0] + 3][peice_pos[1]]}")
 		time.sleep(1)
 		"""
+
 		if (grid[peice_pos[0]][peice_pos[1] - 1] == f"|{self.fill}| "):
 			return True
 		else:
@@ -175,6 +193,7 @@ class peice():
 		print(f"Make sure this is filled: {grid[peice_pos[0] + 3][peice_pos[1]]}")
 		time.sleep(1)
 		"""
+		
 		if (grid[peice_pos[0]][peice_pos[1] + 1] == f"|{self.fill}| "):
 			return True
 		else:
@@ -198,10 +217,24 @@ class peice():
 	def is_cell_taken(self) -> bool:
 		global taken_cell
 		global last_move
-		tmp = last_move.copy()
-		for cord in tmp:
+		for cord in last_move:
 			if [cord[0] + 3, cord[1]] in taken_cell:
 				return True
+
+		return False
+
+
+
+	# Because python threads dont in true parrell. This function checks two space ahead
+	# TO make up for the un-synced position across threads
+	def is_cell_taken_force(self) -> bool:
+		global taken_cell
+		global last_move
+		for cord in last_move:
+			if [cord[0] + 6, cord[1]] in taken_cell or [cord[0] + 3, cord[1]] in taken_cell:
+
+				return True
+
 		return False
 
 
@@ -280,28 +313,16 @@ class peice():
 
 		tmp = last_move.copy()
 		# Check if we are out of our top bound
-		for cord in last_move:
-			if (cord[0] < 6 and self.is_cell_taken()):
-				
-				game_alive = False
-				return False
+
+		if peice_alive == 0:
+			return False
 
 		if (self.is_cell_taken()):
-			print("Collision detected")
+			"""
 			lock.acquire()
 			collision_flag_block = 1
 			lock.release()
-
-		if len(last_move) > 0:
-			for cord in tmp: 
-				if (cord[0] >= 64):
-					collision_flag_floor = 1
-					break
-		
-		if peice_alive == 0:
-			return False
-			
-		if collision_flag_floor == 1 and collision_flag_block == 1:
+			"""
 			for cord in tmp:
 				self.fill_cell(cord[0] , cord[1])
 				taken_cell += [[cord[0], cord[1]]]
@@ -313,10 +334,39 @@ class peice():
 			peice_pos = [1, 5]
 			peice_alive = 0
 			lock.release()
-
+			
 			return False
+			
+
+		if len(last_move) > 0:
+			for cord in tmp: 
+				if (cord[0] >= 64):
+					#self.remove_peice()
+					for cord in tmp:
+						self.fill_cell(cord[0], cord[1])
+
+						taken_cell += [[cord[0], cord[1]]]
+
+					self.show_grid()
+					
+					lock.acquire()
+					last_move = []
+					peice_pos = [1, 5]
+					peice_alive = 0
+					lock.release()
+					
+					return False
+
+		for cord in last_move:
+			if (cord[0] < 7 and self.is_cell_taken()):
+				game_alive = False
+				return False
+		
 
 		
+		return True
+
+		"""
 
 		elif collision_flag_floor == 1:
 			#self.remove_peice()
@@ -334,7 +384,9 @@ class peice():
 			
 			return False
 
+		"""
 
+		"""
 		elif collision_flag_block == 1:
 			for cord in tmp:
 				self.fill_cell(cord[0] , cord[1])
@@ -350,8 +402,8 @@ class peice():
 			
 			
 			return False
-		else:
-			return True
+		"""
+		
 
 
 	
@@ -365,59 +417,75 @@ class peice():
 		global next_cells
 
 
-		lock.acquire()
 		tmp = last_move.copy()
-		lock.release()
 
 
-		# Extra condition, to ensure not moving out of grid
-		if len(last_move) > 0 and last_move[0][0] < 66:
-			# This is how we sink the data between threads.
-			# Make up for the incrimented value in our counter func
-			# Only move down if value was updated
-			delta =  peice_pos[0] - last_move[0][0]
-		else:
-			delta = 0
- 	
-		
 		if self.check_pos():
-			self.remove_peice() 
-			for cord in tmp:
-				self.fill_cell(cord[0] + delta , cord[1])
-				last_move += [[cord[0] + delta , cord[1]]]
+			# Extra condition, to ensure not moving out of grid
+			if len(last_move) > 0:
+				# This is how we sink the data between threads.
+				# Make up for the incrimented value in our counter func
+				# Only move down if value was updated
+				delta =  peice_pos[0] - last_move[0][0]
+		 	
+				
+				self.remove_peice() 
+				for cord in tmp:
+					self.fill_cell(cord[0] + delta , cord[1])
+					last_move += [[cord[0] + delta , cord[1]]]
 		else:
 			lock.acquire()
 			peice_alive =  0
 			lock.release()
 			self.show_grid()
+
+
+
+	"""
+	Current bug... with move left & right.
+
+
+	These functions only account for the center block.
+	So lets say we rotate, then move rigth. will get an index error
+
+
+	"""
+
+
+
+
 
 	
 	def move_left(self) -> None:
 		global peice_pos
 		global last_move
 		global next_cells
+		global cardinal
 
 		
 		tmp = last_move.copy()
-		peice_pos = [peice_pos[0], peice_pos[1] - 1]
-		
 		for cord in tmp:
 			if cord[1] == 0:
+				self.move_down()
 				return None
-			elif [cord[0] ,cord[1] - 1] in taken_cell:
+			elif [cord[0] ,cord[1] - 1] in taken_cell or [cord[0] + 3 ,cord[1] - 1] in taken_cell :
+				self.move_down()
 				return None
 
 		if self.check_pos():
-			self.remove_peice() 
-			for cord in tmp:
-				self.fill_cell(cord[0], cord[1] - 1)
-				last_move += [[cord[0], cord[1] - 1]]
 
+			if ((peice_pos[1] > 0 and cardinal != 'west') or (cardinal == 'west' and peice_pos[1] > 3)):
+				peice_pos = [peice_pos[0], peice_pos[1] - 1]
+
+				self.remove_peice() 
+				for cord in tmp:
+					self.fill_cell(cord[0], cord[1] - 1)
+					last_move += [[cord[0], cord[1] - 1]]
+
+			else:
+				self.move_down()
 		else:
-			lock.acquire()
-			peice_alive =  0
-			lock.release()
-			self.show_grid()
+			self.move_down()
 
 	
 	def move_right(self) -> None:
@@ -425,57 +493,49 @@ class peice():
 		global last_move
 		global next_cells
 		global taken_cell
+		global cardinal	
+
+ 
 
 		
 		tmp = last_move.copy()
-		peice_pos = [peice_pos[0], peice_pos[1] + 1]
 		
 		for cord in tmp:
 			if cord[1] == 9:
+				self.move_down()
 				return None
-			elif [cord[0] ,cord[1] + 1] in taken_cell:
+			elif [cord[0] ,cord[1] + 1] in taken_cell or [cord[0] + 3,cord[1] + 1] in taken_cell:
+				self.move_down()
 				return None
 
 		if self.check_pos():
-			self.remove_peice() 
-			for cord in tmp:
-				self.fill_cell(cord[0], cord[1] + 1)
-				last_move += [[cord[0], cord[1] + 1]]
+			
+
+			if ((peice_pos[1] < 9 and cardinal != 'east') or (cardinal == 'east' and peice_pos[1] < 6)):
+				peice_pos = [peice_pos[0], peice_pos[1] + 1]
+
+				self.remove_peice() 
+				for cord in tmp:
+					
+					self.fill_cell(cord[0], cord[1] + 1)
+					last_move += [[cord[0], cord[1] + 1]]
+
+			else:
+				self.move_down()
 
 		else:
-			lock.acquire()
-			peice_alive =  0
-			lock.release()
-			self.show_grid()
+			self.move_down()
 
 	def force_down(self) -> None:
 		global peice_pos
-		if peice_pos[0] + 3 < 61 and self.check_pos():
+		if peice_pos[0] <= 58 and not self.is_cell_taken_force():
+			lock.acquire()
 			peice_pos[0] += 3
+			lock.release()
 			self.move_down()
-		else:
-			return None
 
 
 
-
-
-
-
-
-	def move_down_manual(self) -> None: # Moves our block down one space at a time
-		global peice_pos
-		global last_move
-	
-		tmp = last_move.copy()
-		self.remove_peice()
-		peice_pos[0] += 3
-
-		for cords in tmp: 
-			grid[cords[0] + 3][cords[1]]  = f"|{self.fill}| "
-			last_move += [[cords[0] + 3, cords[1]]]
-		next_cells = []	
-		return None
 
 
 
@@ -495,6 +555,8 @@ class peice_I_block(peice):
 		global last_move
 		global peice_pos
 		global grid
+		
+
 		"""
 		lock.acquire()
 		#peice_pos = self.center
@@ -528,19 +590,21 @@ class peice_I_block(peice):
 		global peice_pos
 		global last_move
 		global next_cells
+		global cardinal
 		# This is in form of y, x
 
 
-		print("Turn Left")
+	
 		self.tmp = peice_pos.copy()
 		next_cells = []
 
 		# IF there is a block underneath our start block and there is enough space on the left side
-		if(self.check_pos()):
-			if(peice_pos[1] >= 3 and peice_pos[0] <= 54 and self.check_block_under()):
+		if(not self.is_cell_taken_force() and self.check_pos()):
+			if(peice_pos[0] <= 54 and peice_pos[1] >= 3 and self.check_block_under()):
 			
 				self.remove_peice()
 
+				cardinal = 'west'
 				
 				for cell in range(self.length):
 					grid[self.tmp[0]][self.tmp[1]] = f"|{self.fill}| "
@@ -548,44 +612,54 @@ class peice_I_block(peice):
 					
 					self.tmp[1] -= 1
 
+	
+
 				self.tmp = peice_pos.copy()
+
+
 			
 			
 			# IF there is a block to the left our start block and enough space up top
-			elif(peice_pos[0] >= 10 and self.check_block_left()):
+			elif(peice_pos[1] > 0 and self.check_block_left() and peice_pos[0] >= 6):
 				self.remove_peice()
+
+				cardinal = 'north'
+
 
 				for cell in range(self.length):
 					grid[self.tmp[0]][self.tmp[1]] = f"|{self.fill}| "
 					last_move += [[self.tmp[0],self.tmp[1]]]
 						
 					self.tmp[0] -= 3
-					
-
+		
 
 				self.tmp = peice_pos.copy()
 				
 
 			# if there is a block up top, and enough space to the right
-			elif(peice_pos[1] <= 7 and self.check_block_top()):
+			elif(peice_pos[0] <= 54 and self.check_block_top() and peice_pos[1] <= 6 ):
 				
 				self.remove_peice()
+
+				cardinal = 'east'
 
 				for cell in range(self.length):
 					grid[self.tmp[0]][self.tmp[1]] = f"|{self.fill}| "
 					last_move += [[self.tmp[0],self.tmp[1]]]
 
 					self.tmp[1] += 1
-				
-
+			
 
 				self.tmp = peice_pos.copy()
+
 		
 
 			# if there is a block to the right and enough space bellow
-			elif(peice_pos[0] <= 54 and self.check_block_right()):
+			elif(peice_pos[0] <= 54 and peice_pos[1] < 9 and self.check_block_right()):
 
 				self.remove_peice()
+
+				cardinal = 'south'
 				
 
 				for cell in range(self.length):
@@ -594,12 +668,14 @@ class peice_I_block(peice):
 					
 					last_move += [[self.tmp[0],self.tmp[1]]]
 					self.tmp[0] += 3
-			
+
 				self.tmp = peice_pos.copy()
+			
+			else:
+				self.move_down()
 			
 
 		else:
-			print("Invalid Move!!!!!!")
 			self.move_down()
 
 
@@ -614,19 +690,23 @@ class peice_I_block(peice):
 		global peice_pos
 		global last_move
 		global next_cells
+		global cardinal
 		# This is in form of y, x
 
-
-		print("Turn Left")
+	
+		
 		self.tmp = peice_pos.copy()
 		next_cells = []
 		
-		# if there is a block bellow our start block, and enough space to the right
-		if(self.check_pos()):
-			if(peice_pos[1] <= 7  and peice_pos[0] <= 54 and self.check_block_under() ):
-				
+		if(not self.is_cell_taken_force() and self.check_pos()):
+			# if there is a block bellow our start block, and enough space to the right
+			if(peice_pos[0] <= 54 and peice_pos[1] <= 6 and self.check_block_under()):
+			
 				self.remove_peice()
+			
+				cardinal = 'east'
 				
+		
 				for cell in range(self.length):
 					grid[self.tmp[0]][self.tmp[1]] = f"|{self.fill}| "
 					last_move += [[self.tmp[0],self.tmp[1]]]
@@ -637,9 +717,12 @@ class peice_I_block(peice):
 	
 			
 			# if there is a block to the right, and enough space up top
-			elif(self.check_block_right() and peice_pos[0] >= 10):
+			elif(peice_pos[0] <= 54 and peice_pos[1] < 9 and self.check_block_right()):
 				self.remove_peice()
 				
+				
+				cardinal = 'north'
+
 				for cell in range(self.length):
 					grid[self.tmp[0]][self.tmp[1]] = f"|{self.fill}| "
 					last_move += [[self.tmp[0],self.tmp[1]]]
@@ -649,9 +732,13 @@ class peice_I_block(peice):
 
 
 			# if there is a block up top, and enough space to the left
-			elif(self.check_block_top() and peice_pos[1] >= 3):
+			elif(peice_pos[0] <= 54 and peice_pos[1] >= 3 and self.check_block_top()):
 				
 				self.remove_peice()
+			
+				
+
+				cardinal = 'west'
 
 				for cell in range(self.length):
 
@@ -665,12 +752,12 @@ class peice_I_block(peice):
 				self.tmp = peice_pos.copy()
 				
 
-				
-
 			# if there is a block to the left, and enough space on the bottom
-			elif(self.check_block_left() and peice_pos[0] <= 54):
+			elif(peice_pos[0] <= 54 and self.check_block_left()):
 
 				self.remove_peice()
+				
+				cardinal = 'south'
 				
 				for cell in range(self.length):
 				
@@ -681,10 +768,14 @@ class peice_I_block(peice):
 				
 				self.tmp = peice_pos.copy()
 
-			else: 
-				print("Invalid Move")
+
+			else:
 				self.move_down()
-		
+
+
+		else: 
+			self.move_down()
+	
 
 
 	def place_peice(self):
@@ -783,40 +874,53 @@ def game_play_auto():
 
 	
 
-	for i in range(20):
-		i_block = peice_I_block()  # When the bottom loop breaks, Our object is called once more
-	
-		peice_alive = 1
-		while peice_alive and count != max_game_count:
-			input_for_control = random.randint(0, 7)
-			time.sleep(.26)
-			match input_for_control:
-				case 0:
-					peice_control.check_pos()
-					peice_control.move_down()
-					spawn_grid.show_grid()
-				
-				case 1:
-					peice_control.check_pos()
-					i_block.rotate_block_left()
-					spawn_grid.show_grid()
-	
-				case 4:
-					peice_control.check_pos()
-					i_block.rotate_block_right()
-					spawn_grid.show_grid()
-				case 5:
-					peice_control.check_pos()
-					peice_control.force_down()
-					spawn_grid.show_grid()
-				case 6:
-					peice_control.check_pos()
-					peice_control.move_left()
-					spawn_grid.show_grid()
-				case 7:
-					peice_control.check_pos()
-					peice_control.move_right()
-					spawn_grid.show_grid()
+	for i in range(30):
+		if peice_control.check_grid():
+			i_block = peice_I_block()  # When the bottom loop breaks, Our object is called once more
+			peice_alive = 1
+			while peice_alive and count != max_game_count:
+				input_for_control = random.randint(0, 5)
+				match input_for_control:
+					case 0:
+						peice_control.move_down()
+						spawn_grid.show_grid()
+						time.sleep(.15)
+					
+					case 1:
+						i_block.rotate_block_left()
+						spawn_grid.show_grid()
+						time.sleep(.15)
+					case 2:
+						
+						i_block.rotate_block_right()
+						spawn_grid.show_grid()
+						time.sleep(.15)
+					case 3:
+						
+						peice_control.force_down()
+						spawn_grid.show_grid()
+						time.sleep(.15)
+					case 4:
+						
+						peice_control.move_left()
+						spawn_grid.show_grid()
+						time.sleep(.15)
+					case 5:
+						
+						peice_control.move_right()
+						spawn_grid.show_grid()
+						time.sleep(.15)
+
+
+
+"""
+
+Important notes: 
+The player pos is in the form of y,x
+
+There are 66 rows. Every 3 rows is where the the "Empty/fill" cells are located
+
+"""
 
 
 
@@ -830,6 +934,8 @@ def game_play_manual():
 	global user_input
 	global game_alive
 	global max_game_count
+	global taken_cell
+	global cleard_row
 	spawn_grid = grid_field()
 	spawn_grid.show_grid()
 	spawn_grid.show_grid()
@@ -837,40 +943,48 @@ def game_play_manual():
 
 	
 
-	for i in range(20):
-		i_block = peice_I_block()  # When the bottom loop breaks, Our object is called once more
-		print( "A new object being created!!!")
-		peice_alive = 1
-		while peice_alive and game_alive and count != max_game_count:
-			peice_control.check_grid()
-			match user_input:
-				case '':
-					user_input = ''
-					peice_control.move_down()
-					spawn_grid.show_grid()
-					time.sleep(.15)
-				case 'a':
-					user_input = ''
-					peice_control.move_left()
-					spawn_grid.show_grid()
-					time.sleep(.15)
-				case 's':
-					user_input = ''
-					peice_control.check_pos()
-					if peice_pos[0] < 58:
-						peice_control.force_down()
+	for i in range(30):
+		if peice_control.check_grid():
+			i_block = peice_I_block()  # When the bottom loop breaks, Our object is called once more
+			peice_alive = 1
+			while peice_alive and game_alive and count != max_game_count:
+				match user_input:
+					case '':
+						user_input = ''
+						peice_control.move_down()
 						spawn_grid.show_grid()
-					time.sleep(.15)
-				case 'd':
-					user_input = ''
-					peice_control.move_right()
-					spawn_grid.show_grid()
-					time.sleep(.15)
-				case 'q':
-					user_input = ''
-					i_block.rotate_block_left()
-					spawn_grid.show_grid()
-					time.sleep(.15)
+						time.sleep(.15)
+					case 'a':
+						user_input = ''
+						peice_control.move_left()
+						spawn_grid.show_grid()
+						time.sleep(.15)
+					case 's':
+						user_input = ''
+						if peice_pos[1] < 58 :
+							peice_control.force_down()
+							spawn_grid.show_grid()
+						time.sleep(.15)
+					case 'd':
+						user_input = ''
+						peice_control.move_right()
+						spawn_grid.show_grid()
+						time.sleep(.15)
+					case 'q':
+						user_input = ''
+						i_block.rotate_block_left()
+						spawn_grid.show_grid()
+						
+						
+					case 'e':
+						user_input = ''
+						i_block.rotate_block_right()
+						spawn_grid.show_grid()
+					
+				
+					
+
+
 
 """
 def counter_func():
@@ -879,7 +993,7 @@ def counter_func():
 	global last_move
 	peice_control = peice()
 	for i in range(20):
-		time.sleep(.75)
+		time.sleep(.65)
 		lock.acquire()
 		peice_pos[0] += 3
 		for i in range(len(last_move)):
@@ -910,19 +1024,31 @@ def counter_func():
 	global grid
 	global last_move
 	global count
-	global game_alive
+	global game_alive 
 	global max_game_count
+	global taken_cell
 	#grid[5][1] = "dfdsafdsa" We can reach the global grid from this functions
 	for i in range(max_game_count):
 		if game_alive:
 			
-			time.sleep(.2)
-			lock.acquire()
-			peice_pos[0] += 3
+			time.sleep(.4)
+			
+			#peice_pos = [49, 0]
+		
+			if peice_pos[0] <= 61:
+				lock.acquire()
+				peice_pos[0] += 3
+				lock.release()
+					
+
+			
+			
 			count += 1
-			lock.release()
+			
+			
 		else:
 			break
+
 
 """
 Notes: 4/9/2024
