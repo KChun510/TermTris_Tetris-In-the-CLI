@@ -10,7 +10,7 @@ Next:
 - Add other blocks.
 - Implement scoring system.
   
-![Alt Text](https://github.com/KChun510/TermTris_Tetris-In-the-CLI/blob/extra_content/Untitledvideo-MadewithClipchamp-ezgif.com-video-to-gif-converter.gif)
+![Alt Text](https://github.com/KChun510/TermTris_Tetris-In-the-CLI/blob/81249871d71c5b1b52c4555752b9d48cf5dfda50/CommandPrompt2024-04-2819-06-55-ezgif.com-video-to-gif-converter.gif)
 
 
 
