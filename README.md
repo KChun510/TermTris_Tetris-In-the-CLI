@@ -1,6 +1,19 @@
 # Terminal_Tetris
 A recreation of Tetris that runs in a Terminal/Command Prompt!
 
+**Date: 4/28/24** <br />
+Completed:
+- Row clearing mechanic.
+- Fixed minor bugs.
+
+Next: 
+- Add other blocks.
+- Implement scoring system.
+  
+![Alt Text](https://github.com/KChun510/TermTris_Tetris-In-the-CLI/blob/81249871d71c5b1b52c4555752b9d48cf5dfda50/CommandPrompt2024-04-2819-06-55-ezgif.com-video-to-gif-converter.gif)
+
+
+
 **Date: 4/7/24** <br />
 Completed:
 - Left and right brick movement.
