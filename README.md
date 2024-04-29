@@ -7,7 +7,7 @@ Completed:
 - Fixed minor bugs.
 
 Next: 
-- Add ohter blocks.
+- Add other blocks.
 - Implement scoring system.
   
 ![Alt Text](https://github.com/KChun510/TermTris_Tetris-In-the-CLI/blob/extra_content/Untitledvideo-MadewithClipchamp-ezgif.com-video-to-gif-converter.gif)
