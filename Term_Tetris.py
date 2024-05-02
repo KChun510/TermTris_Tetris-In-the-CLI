@@ -17,8 +17,6 @@ On windows "import  msvcrt"
 
 """
 """
-
-
 Task:
 split the decrement function into its own thread. 
 And pass vars between them (The Threads)
@@ -41,7 +39,6 @@ user_input = ""
 game_alive = True
 cell_taken_flag = False
 cleard_row = []
-
 max_game_count = 250
 
 
@@ -89,6 +86,7 @@ class peice():
 
 		#peice_pos = [0,0] # y, x
 		peice_pos = [1 , 5]
+		#peice_pos = [10 , 5]
 
 
 	def show_grid(self):
@@ -490,7 +488,6 @@ class peice():
 
 	def force_down(self) -> None:
 		global peice_pos
-		print(peice_pos)
 		if peice_pos[0] < 64 and not self.is_cell_taken_force():
 			lock.acquire()
 			peice_pos[0] += 3
@@ -507,6 +504,43 @@ Moving forward we are going to use a sinlgle block to track position and movemen
 Think of the center peice/when we were only moving around a single block
 
 """
+class peice_O_block(peice):
+	def __init__(self):
+		peice.__init__(self)
+		global last_move
+		global peice_pos
+		global grid
+		
+
+
+		"""
+		The O block will have no rotate function for now at least. 
+		"""
+		self.length = 2
+
+
+		last_move = [] # We will keep a tempory trace of the index's are filled. Needed for peice deletion
+		#print(peice_pos)
+		# peice_pos[0] += 3
+		lock.acquire()
+		peice_pos = peice_pos
+		self.tmp = peice_pos.copy()
+		lock.release()
+	
+
+		for cell in range(self.length):
+			grid[self.tmp[0]][self.tmp[1]] = f"|{self.fill}| "
+			grid[self.tmp[0] + 3][self.tmp[1]] = f"|{self.fill}| "
+			last_move += [[self.tmp[0],self.tmp[1]]]
+			last_move += [[self.tmp[0] + 3,self.tmp[1]]]
+			#next_cells += [[self.tmp[0] + 3,self.tmp[1]]]
+		
+			self.tmp[1] += 1
+
+		self.show_grid()
+
+
+
 
 
 
@@ -808,7 +842,7 @@ There are 66 rows. Every 3 rows is where the the "Empty/fill" cells are located
 
 
 
-def game_play_manual():
+def game_play_manual() -> None:
 	global peice_pos
 	global grid
 	global peice_alive
@@ -860,26 +894,75 @@ def game_play_manual():
 						user_input = ''
 						i_block.rotate_block_right()
 						spawn_grid.show_grid()
+					case 'z':
+						return None
+
+
+
+
+def game_play_manual_test() -> None:
+	global peice_pos
+	global grid
+	global peice_alive
+	global count
+	global user_input
+	global game_alive
+	global max_game_count
+	global taken_cell
+	global cleard_row
+	spawn_grid = grid_field()
+	spawn_grid.show_grid()
+	spawn_grid.show_grid()
+	peice_control = peice()	
+
+	
+
+	for i in range(30):
+		if peice_control.check_grid():
+			#i_block = peice_I_block()  # When the bottom loop breaks, Our object is called once more
+			o_block = peice_O_block()
+			peice_alive = 1
+			while peice_alive and game_alive and count != max_game_count:
+				match user_input:
+					case '':
+						user_input = ''
+						peice_control.move_down()
+						spawn_grid.show_grid()
+						time.sleep(.15)
+					case 'a':
+						user_input = ''
+						peice_control.move_left()
+						spawn_grid.show_grid()
+						time.sleep(.15)
+					case 's':
+						user_input = ''
+						peice_control.force_down()
+						spawn_grid.show_grid()
+					
+					case 'd':
+						user_input = ''
+						peice_control.move_right()
+						spawn_grid.show_grid()
+						time.sleep(.15)
+					case 'q':
+						user_input = ''
+						i_block.rotate_block_left()
+						spawn_grid.show_grid()
+						
+					case 'e':
+						user_input = ''
+						i_block.rotate_block_right()
+						spawn_grid.show_grid()
+					case 'z':
+						return None
+
+
+
+
+
 					
 				
 					
-
-
-
-"""
-def counter_func():
-	global peice_pos
-	global next_cells
-	global last_move
-	peice_control = peice()
-	for i in range(20):
-		time.sleep(.65)
-		lock.acquire()
-		peice_pos[0] += 3
-		for i in range(len(last_move)):
-			next_cells += [[last_move[i][0] + 3, last_move[i][1]]]
-		lock.release()
-"""
 
 
 """
@@ -894,11 +977,7 @@ python3 Term_Tetris.py
 """
 
 
-"""
-When the counter is at 1.5, and the time between moves is 1 second. We got the best performace
-
-"""
-def counter_func():
+def counter_func() -> None:
 	global peice_pos
 	global next_cells
 	global grid
@@ -909,14 +988,17 @@ def counter_func():
 	global taken_cell
 	#grid[5][1] = "dfdsafdsa" We can reach the global grid from this functions
 	for i in range(max_game_count):
-		if game_alive:
+		if game_alive and user_input != 'z':
 			
 			time.sleep(.25)
 			
 			#peice_pos = [49, 0]
-		
+			
+
+
 			lock.acquire()
 			peice_pos[0] += 3
+			#peice_pos = [10, 5]
 			lock.release()
 
 			
@@ -924,7 +1006,7 @@ def counter_func():
 			
 			
 		else:
-			break
+			return None 
 
 
 """
@@ -949,14 +1031,26 @@ def player_input_windows():
 		user_input = chr(msvcrt.getch()[0])
 		user_input = ''
 
+	os._exit()
 
-def player_input_mac(key):
+
+def player_input_mac(key) -> None:
 	global user_input
 	global count
 	global game_alive
 	global max_game_count
 
-	user_input = format(key.char)
+
+	try:
+		user_input = format(key.char)
+	except AttributeError:
+		user_input = ''
+
+
+	if (user_input == 'z'):
+		os._exit(1)
+		return None
+		
    
 
 
@@ -964,9 +1058,10 @@ def player_input_mac(key):
 
 def main() -> None:
 	t1 = threading.Thread(target=game_play_manual)
+	#t1 = threading.Thread(target=game_play_manual_test)
 	#t1 = threading.Thread(target=game_play_auto)
 	t2 = threading.Thread(target=counter_func)
-	#t3 = threading.Thread(target=player_input)
+	#t3 = threading.Thread(target=player_input_windows)
 	t3 = keyboard.Listener(on_press=player_input_mac)
 	
 
@@ -978,6 +1073,7 @@ def main() -> None:
 	t1.join()
 	t2.join()
 	t3.join()
+	os._exit()
 
 	
 
