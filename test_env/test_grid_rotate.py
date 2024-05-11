@@ -4,6 +4,7 @@ import os
 import time
 import threading
 import random
+import math
 
 
 lock = threading.Lock()
@@ -18,6 +19,7 @@ game_alive = True
 cell_taken_flag = False
 cleard_row = []
 max_game_count = 250
+
 
 
 class grid_field:
@@ -52,7 +54,7 @@ class peice():
 		self.fill = u"\u2588\u2588\u2588"
 		#peice_pos = [0,0] # y, x
 		#peice_pos = [10, 0]
-		peice_pos = [7 , 5]
+		peice_pos = [25 , 3]
 		#peice_pos = [25 , 5]
 	def show_grid(self):
 		os.system('cls||clear')
@@ -226,7 +228,9 @@ class peice():
 
 
 		tmp = last_move.copy()
-
+		
+		print("Moving down")
+		"""
 
 		if self.check_pos():
 			# Extra condition, to ensure not moving out of grid
@@ -238,19 +242,20 @@ class peice():
 				if delta > 3 and user_input != 's':
 					delta = 3
 
-		 		
-				
 				self.remove_peice() 
 				for cord in tmp:
 					self.fill_cell(cord[0] + delta , cord[1])
 					last_move += [[cord[0] + delta , cord[1]]]
+
+				self.show_grid()
+
 		else:
 			lock.acquire()
 			peice_alive =  0
 			lock.release()
 			self.show_grid()
 
-
+		"""
 	def move_left(self) -> None:
 		global peice_pos
 		global last_move
@@ -369,11 +374,13 @@ class peice():
 class peice_T_block(peice):
 	def __init__(self):
 		peice.__init__(self)
-
+	
 	def create_and_place(self):
 		global last_move
 		global peice_pos
+
 		self.tmp = peice_pos.copy()
+		
 		self.fill_cell(self.tmp[0], self.tmp[1])
 		last_move += [[self.tmp[0],self.tmp[1]]]
 		self.fill_cell(self.tmp[0] - 3, self.tmp[1])
@@ -403,8 +410,7 @@ class peice_L_block(peice):
 		self.fill_cell(self.tmp[0] + 3, self.tmp[1])
 		last_move += [[self.tmp[0] + 3,self.tmp[1]]]
 		self.fill_cell(self.tmp[0] + 3, self.tmp[1] + 1)
-		last_move += [[self.tmp[0] + 3,self.tmp[1] + 1]]			
-	
+		last_move += [[self.tmp[0] + 3,self.tmp[1] + 1]]
 		self.show_grid()
 
 
@@ -413,47 +419,129 @@ class peice_I_block(peice):
 	def __init__(self):
 		peice.__init__(self)
 		self.length = 4
+		# There will be 3 orenations, that we need to keep track of for our rotation function
+		self.rotation_count = 0 
 
 	def create_and_place(self):
 		global last_move
 		global peice_pos
 		global grid
-
-		self.tmp = peice_pos.copy()
-		for cell in range(self.length):
-			grid[self.tmp[0]][self.tmp[1]] = f"|{self.fill}| "
 		
-			last_move += [[self.tmp[0],self.tmp[1]]]
-			#next_cells += [[self.tmp[0] + 3,self.tmp[1]]]
-			self.tmp[0] += 3
+		peice_pos = [25, 4]
+		#peice_pos = [34, 4]
+		self.tmp = peice_pos.copy()
+
+		self.fill_cell(self.tmp[0], self.tmp[1] - 1)
+		last_move += [[self.tmp[0],self.tmp[1] - 1]]
+		self.fill_cell(self.tmp[0], self.tmp[1])
+		last_move += [[self.tmp[0],self.tmp[1]]]
+		self.fill_cell(self.tmp[0], self.tmp[1] + 1)
+		last_move += [[self.tmp[0],self.tmp[1] + 1]]
+		self.fill_cell(self.tmp[0], self.tmp[1] + 2)
+		last_move += [[self.tmp[0],self.tmp[1] + 2]]
 		self.show_grid()
+
+		print(last_move)
+	
+		
 
 	def super_rotation(self):
 		global last_move
 		global peice_pos
-
-		for cord in last_move:
-			if cord[1] - 2 <= 0:
-				for i in range(2):
-					self.move_right()
-		for cord in last_move:
-			if cord[1] + 2 >= 8:
-				for i in range(2):
-					self.move_left()
-	
-		# If on the right wall and rot out of grid, kick left -2
-
+		# Rember this requires the I block to start sideways
+		y1, y2 = last_move[1][0], last_move[2][0]
+		x1, x2 = last_move[1][1], last_move[2][1]
+		
 		tmp = last_move.copy()
 		self.remove_peice()
-		print(tmp)
+		if self.rotation_count == 0 or self.rotation_count == 2:
+			x_mid_point = (x1 + x2) / 2
+			y_mid_point = y1 / 2 - x_mid_point
+			if self.rotation_count == 0:
+				largest_y = y1 + 3
+				lock.acquire()
+				#peice_pos[0] -= 3
+				lock.release()
+			else:
+				largest_y = y1 + 6
+				lock.acquire()
+				#peice_pos[0] += 3
+				lock.release()
+		else:
+			y_mid_point = (((y1 - 1) / 3)+((y2 - 1)/ 3)) / 2
+			if self.rotation_count == 1:
+				x_mid_point = ((x1 + x2)/ 2) + .5
+				largest_y = max(y1, y2)
+				lock.acquire()
+				#peice_pos[1] += 1
+				lock.release()
+			else:
+				print("Moving up for some reason")
+				x_mid_point = ((x1 + x2)/ 2) - .5
+				largest_y = max(y1, y2) + 6
+				lock.acquire()
+				#peice_pos[1] -= 1
+				lock.release()
+ 
+		data_prev = []
+		data_after = []
+
+		special_case = x_mid_point
 		for cord in tmp:
-			cord = cord[::-1]
-			print(f"Before the transform: {cord}")
-			print(f" After the transform: {((cord[0] * 3) + 1, (cord[1] // 3) - 1)}")
-			self.fill_cell((cord[0] * 3) + 1, (cord[1] // 3) - 3)
-			last_move += [[(cord[0] * 3) + 1, (cord[1] // 3) - 3]]
+			# Translate cords to 4 x 4
+			if self.rotation_count == 1:
+				x = .5
+			elif self.rotation_count == 3:
+				x = -.5
+			else: 
+				x = cord[1] - x_mid_point
+			#time.sleep(2)
+			y = ((cord[0] - 1) / 3) - y_mid_point
+			# swap
+			print(f"The value of y, x before swap: {y, x}")
+			data_prev += [[y,x]]
+			y , x = -x, y
+			data_after += [[y,x]]
+			#print(y, x)
+			#time.sleep(5)
+			# Translate_back
+			cord = [int((largest_y - ((y * 3) + x_mid_point))), int(x + x_mid_point)]
+			if self.rotation_count == 3:
+				print(cord)
+				#time.sleep(1)
+
+			self.fill_cell(cord[0], cord[1])
+			last_move += [cord]
 
 		self.show_grid()
+		print(y_mid_point, x_mid_point)
+		print(peice_pos)
+		#peice_pos = [y1, x1]
+		print(last_move)
+		print(last_move[1])
+
+
+		"""
+
+		if self.rotation_count == 3:
+			print(tmp)
+			print(last_move)
+			print(f"The largest_y is: {largest_y}")
+			print(f"The x_mid_point is: {x_mid_point}")
+			print(f"The y_mid_point is: {y_mid_point}")
+			print(f"The saved data: {data_prev}")
+			print(f"The data after: {data_after}")
+			time.sleep(10)
+		"""
+
+		if self.rotation_count == 3:
+			self.rotation_count = 0
+		else:
+			self.rotation_count += 1
+
+
+
+
 
 
 
@@ -498,8 +586,8 @@ def game_play_manual_test() -> None:
 	for i in range(30):
 		if peice_control.check_grid():
 			# The object must be in inner loop, instantiate new objects
-			obj_peice_array = [peice_L_block(), peice_O_block(),  peice_T_block()]
-			#obj_peice_array = [peice_I_block()]
+			#obj_peice_array = [peice_L_block(), peice_O_block(),  peice_T_block()]
+			obj_peice_array = [peice_I_block()]
 			chosen_peice = obj_peice_array[random.randint(0 , len(obj_peice_array) - 1)]
 			#chosen_peice = obj_peice_array[1]
 			#chosen_peice = peice_O_block()
@@ -554,11 +642,20 @@ def counter_func() -> None:
 	#grid[5][1] = "dfdsafdsa" We can reach the global grid from this functions
 	for i in range(max_game_count):
 		if game_alive and user_input != 'z':
+
 			time.sleep(.25)
+			# In the event we have an I block
+			"""
+			if len(peice_pos) > 1:
+				for index in peice_pos:
+					peice_pos[index][0] += 3
+			"""
+			
 			#peice_pos = [49, 0]
 			lock.acquire()
 			peice_pos[0] += 3
-		#	peice_pos = [25, 5]
+			#peice_pos = peice_pos
+			#peice_pos = peice_pos
 			lock.release()
 			count += 1			
 		else:
