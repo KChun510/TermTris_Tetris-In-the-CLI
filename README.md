@@ -1,6 +1,20 @@
 # Terminal_Tetris
 A recreation of Tetris that runs in a Terminal/Command Prompt!
 
+**Date: 5/14/24** <br />
+Completed:
+- !Implemented Tetris SRS (Super rotation system)!.
+- Added each block.
+
+Next: 
+- Implement instant drop.
+- Implement scoring system.
+  
+![Alt Text](https://github.com/KChun510/TermTris_Tetris-In-the-CLI/blob/a9be897db950d608faca4e6c6e3da586c31d1b54/newest_termtris.gif)
+
+
+
+
 **Date: 4/28/24** <br />
 Completed:
 - Row clearing mechanic.
