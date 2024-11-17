@@ -232,7 +232,7 @@ class peice():
 		if self.check_pos():
 			# Extra condition, to ensure not moving out of grid
 			if len(last_move) > 0:
-				# This is how we sink the data between threads.
+				# This is how we sync the data between threads.
 				# Make up for the incrimented value in our counter func
 				# Only move down if value was updated
 				delta =  peice_pos[0] - last_move[0][0]
